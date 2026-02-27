@@ -107,7 +107,12 @@ jobs:
         run: |
           # Generate a short hash payload for unique releasing without tags
           SHORT_SHA=$(git rev-parse --short HEAD)
-          echo "release_tag=v1.0.0-$SHORT_SHA" >> $GITHUB_OUTPUT
+          RELEASE_TAG="v1.0.0-$SHORT_SHA"
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          
+          # Rename the artifact to match the release tag dynamically
+          mv ./artifact-bin/FluxBridge-1.0-SNAPSHOT.jar "./artifact-bin/FluxBridge-$RELEASE_TAG.jar"
+          echo "jar_path=./artifact-bin/FluxBridge-$RELEASE_TAG.jar" >> $GITHUB_OUTPUT
           
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "## 🚀 FluxBridge Stable Release (Build $SHORT_SHA)" >> $GITHUB_OUTPUT
@@ -118,7 +123,7 @@ jobs:
           echo "✅ **React**: Dashboard production bundle compiled successfully" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "### Instructions" >> $GITHUB_OUTPUT
-          echo "- **Plugin Installation**: Drop the \`FluxBridge.jar\` file below into your \`plugins/\` folder and configure via the dashboard." >> $GITHUB_OUTPUT
+          echo "- **Plugin Installation**: Drop the \`FluxBridge-$RELEASE_TAG.jar\` file below into your \`plugins/\` folder and configure via the dashboard." >> $GITHUB_OUTPUT
           echo "- View the complete architectural [README.md] for setup guidance." >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
@@ -128,7 +133,7 @@ jobs:
           tag_name: ${{ steps.generate_changelog.outputs.release_tag }}
           name: "FluxBridge Build ${{ steps.generate_changelog.outputs.release_tag }}"
           body: ${{ steps.generate_changelog.outputs.notes }}
-          files: ./artifact-bin/FluxBridge-1.0-SNAPSHOT.jar
+          files: ${{ steps.generate_changelog.outputs.jar_path }}
           draft: false
           prerelease: false
           generate_release_notes: true

@@ -40,7 +40,7 @@ public class QueueManager {
             return;
         }
 
-        String target = command.getPlayerName();
+        String target = command.getPlayerName().toLowerCase();
         List<Map<String, Object>> playerQueue = (List<Map<String, Object>>) queueConfig.getList(target);
         
         if (playerQueue == null) {
@@ -58,13 +58,24 @@ public class QueueManager {
 
     public synchronized List<RelayCommand> getQueuedCommands(String playerName) {
         List<RelayCommand> commands = new ArrayList<>();
-        List<Map<String, Object>> playerQueue = (List<Map<String, Object>>) queueConfig.getList(playerName);
-
-        if (playerQueue != null) {
-            for (Map<String, Object> map : playerQueue) {
-                int id = (int) map.get("id");
-                String cmd = (String) map.get("command");
-                commands.add(new RelayCommand(id, playerName, cmd, true));
+        String target = playerName.toLowerCase();
+        
+        List<?> rawList = queueConfig.getList(target);
+        if (rawList != null) {
+            for (Object obj : rawList) {
+                if (obj instanceof Map) {
+                    Map<?, ?> map = (Map<?, ?>) obj;
+                    try {
+                        int id = map.containsKey("id") ? Integer.parseInt(String.valueOf(map.get("id"))) : -1;
+                        String cmd = map.containsKey("command") ? String.valueOf(map.get("command")) : "";
+                        
+                        if (id != -1 && !cmd.isEmpty()) {
+                            commands.add(new RelayCommand(id, playerName, cmd, true));
+                        }
+                    } catch (Exception ex) {
+                        plugin.getLogger().warning("Failed to parse queued command for " + playerName + ": " + ex.getMessage());
+                    }
+                }
             }
         }
 
@@ -72,7 +83,7 @@ public class QueueManager {
     }
 
     public synchronized void clearQueue(String playerName) {
-        queueConfig.set(playerName, null);
+        queueConfig.set(playerName.toLowerCase(), null);
         saveQueue();
     }
 

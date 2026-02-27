@@ -115,11 +115,16 @@ router.post('/commands', async (req, res) => {
             return res.status(404).json({ error: 'Server not found' });
         }
 
+        let finalCommand = command;
+        if (player_name) {
+            finalCommand = finalCommand.replace('%player%', player_name);
+        }
+
         // Insert into DB
         const cmdData = {
             server_id,
             player_name: player_name || null,
-            command,
+            command: finalCommand,
             require_online: require_online !== undefined ? require_online : true,
             status: 'PENDING'
         };
