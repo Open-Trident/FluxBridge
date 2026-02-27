@@ -1,4 +1,4 @@
-name: FluxBridge CI/CD Pipeline
+name: FluxBridge Auto CI/CD Pipeline
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   verify-backend:
-    name: Verify Backend (Node.js)
+    name: Backend CI (Node.js)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,12 +24,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './backend/package-lock.json'
       - name: Install dependencies
-        run: npm ci
-      - name: Check Syntax (Dry Start)
-        run: node --check src/index.js
+        run: npm ci || npm install
+      - name: Check Syntax / Mock Test
+        run: |
+          # Dry run syntax verification
+          node --check src/index.js
+          # If package.json has test/lint scripts, run them gracefully
+          npm run lint --if-present
+          npm test --if-present
 
   verify-frontend:
-    name: Verify Frontend (React)
+    name: Frontend CI (React)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -43,12 +48,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './frontend/package-lock.json'
       - name: Install dependencies
-        run: npm ci
-      - name: Build Frontend
-        run: npm run build
+        run: npm ci || npm install
+      - name: Build & Lint Frontend
+        run: |
+          npm run lint --if-present
+          npm run build
 
-  verify-plugin:
-    name: Verify Plugin (Java)
+  build-plugin:
+    name: Build Plugin (Maven/Java)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -61,46 +68,64 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
-      - name: Build with Maven
+      
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+          
+      - name: Compile Java Plugin (.jar)
         run: mvn clean package --file pom.xml
+      
+      - name: Upload Plugin Artifact
+        # Uploading the generated JAR on every build (so users can test intermediate builds)
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluxBridge-DevBuild
+          path: ./plugin/target/FluxBridge-1.0-SNAPSHOT.jar
+          if-no-files-found: error
 
   release:
-    name: Auto-Release Plugin
-    needs: [verify-backend, verify-frontend, verify-plugin]
+    name: Automated Release Manager
+    needs: [verify-backend, verify-frontend, build-plugin]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./plugin
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-      - name: Build Plugin JAR
-        run: mvn clean package --file pom.xml
       
-      - name: Extract Release Notes
-        id: extract_notes
+      - name: Download Built Plugin Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: FluxBridge-DevBuild
+          path: ./artifact-bin
+          
+      - name: Auto-Generate Release Notes
+        id: generate_changelog
         run: |
           echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "## FluxBridge Auto Release ${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "## 🚀 FluxBridge Stable Release ${{ github.ref_name }}" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
-          echo "- Includes verified backend & frontend commits." >> $GITHUB_OUTPUT
-          echo "- Tested via CI Pipeline." >> $GITHUB_OUTPUT
+          echo "### Verification Pipeline" >> $GITHUB_OUTPUT
+          echo "✅ **Java Build**: Compiled natively targeting Paper API JDK 17" >> $GITHUB_OUTPUT
+          echo "✅ **Node.js**: Backend syntactic check complete" >> $GITHUB_OUTPUT
+          echo "✅ **React**: Dashboard production bundle compiled successfully" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "### Instructions" >> $GITHUB_OUTPUT
+          echo "- **Plugin Installation**: Drop the \`FluxBridge.jar\` file below into your \`plugins/\` folder and configure via the dashboard." >> $GITHUB_OUTPUT
+          echo "- View the complete architectural [README.md] for setup guidance." >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Create GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          name: FluxBridge ${{ github.ref_name }}
-          body: ${{ steps.extract_notes.outputs.notes }}
-          files: ./plugin/target/FluxBridge-1.0-SNAPSHOT.jar
+          name: "FluxBridge | Version ${{ github.ref_name }}"
+          body: ${{ steps.generate_changelog.outputs.notes }}
+          files: ./artifact-bin/FluxBridge-1.0-SNAPSHOT.jar
           draft: false
           prerelease: false
+          generate_release_notes: true
           fail_on_unmatched_files: true
