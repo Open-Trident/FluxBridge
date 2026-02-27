@@ -1,8 +1,15 @@
 package com.yoursite.relay;
 
+import com.yoursite.relay.api.HttpClient;
+import com.yoursite.relay.api.RelayWebSocketClient;
+import com.yoursite.relay.listener.PlayerJoinListener;
+import com.yoursite.relay.model.RelayCommand;
+import com.yoursite.relay.queue.QueueManager;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+
 import java.io.File;
-import java.net.URI;
 import java.net.URISyntaxException;
 
 public class RelayPlugin extends JavaPlugin {
@@ -15,9 +22,12 @@ public class RelayPlugin extends JavaPlugin {
     private int pollInterval;
     private boolean autoFallback;
 
+    private QueueManager queueManager;
+    private HttpClient httpClient;
+    private RelayWebSocketClient webSocketClient;
+
     @Override
     public void onEnable() {
-        // Save default config.yml if it doesn't exist
         saveDefaultConfig();
         loadConfiguration();
 
@@ -25,26 +35,25 @@ public class RelayPlugin extends JavaPlugin {
         getLogger().info("Server ID: " + serverId);
         getLogger().info("Mode: " + mode);
         
-        // Ensure queue.yml exists
         File queueFile = new File(getDataFolder(), getConfig().getString("queue-save-file", "queue.yml"));
         if (!queueFile.exists()) {
-            try {
-                queueFile.createNewFile();
-            } catch (Exception e) {
-                getLogger().severe("Could not create queue.yml!");
-            }
+            try { queueFile.createNewFile(); } catch (Exception e) { getLogger().severe("Could not create queue.yml!"); }
         }
         
-        // TODO: Initialize QueueManager
-        // TODO: Register PlayerJoinListener
+        queueManager = new QueueManager(this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, queueManager), this);
         
-        // Start clients based on mode
+        httpClient = new HttpClient(this);
+        
         startClients();
     }
 
     @Override
     public void onDisable() {
-        // TODO: Shutdown clients gracefully
+        if (webSocketClient != null && webSocketClient.isOpen()) {
+            webSocketClient.close();
+        }
+        httpClient.stopPolling();
         getLogger().info("FluxBridge has been disabled");
     }
 
@@ -61,11 +70,55 @@ public class RelayPlugin extends JavaPlugin {
     private void startClients() {
         if ("websocket".equals(mode)) {
             getLogger().info("Starting WebSocket Client...");
-            // TODO: Start WebSocket
+            startWebSocket();
         } else {
             getLogger().info("Starting HTTP Polling Client...");
-            // TODO: Start HTTP Polling task
+            startPolling();
         }
+    }
+
+    public void startWebSocket() {
+        try {
+            webSocketClient = new RelayWebSocketClient(this, wsUrl);
+            webSocketClient.connect();
+        } catch (URISyntaxException e) {
+            getLogger().severe("Invalid WebSocket URL config: " + wsUrl);
+        }
+    }
+
+    public void startPolling() {
+        httpClient.startPolling();
+    }
+
+    public void stopPolling() {
+        httpClient.stopPolling();
+    }
+
+    public void sendResult(int commandId, String status, String message) {
+        if (webSocketClient != null && webSocketClient.isOpen()) {
+            webSocketClient.sendResult(commandId, status, message);
+        } else {
+            httpClient.sendResult(commandId, status, message);
+        }
+    }
+
+    public void executeCommand(RelayCommand cmd) {
+        if (cmd.isRequireOnline() && cmd.getPlayerName() != null && !cmd.getPlayerName().isEmpty()) {
+            Player p = Bukkit.getPlayer(cmd.getPlayerName());
+            if (p == null || !p.isOnline()) {
+                getLogger().info("Player " + cmd.getPlayerName() + " is offline. Queuing command...");
+                queueManager.queueCommand(cmd);
+                
+                // We'll mark as QUEUED inside the backend
+                sendResult(cmd.getCommandId(), "QUEUED", "Player is offline, added to local queue");
+                return;
+            }
+        }
+
+        getLogger().info("Executing command: /" + cmd.getCommand());
+        boolean success = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.getCommand());
+        
+        sendResult(cmd.getCommandId(), "SUCCESS", success ? "Executed command successfully" : "Executed command, dispatched locally");
     }
     
     // Getters for configuration values
@@ -76,4 +129,5 @@ public class RelayPlugin extends JavaPlugin {
     public String getMode() { return mode; }
     public int getPollInterval() { return pollInterval; }
     public boolean isAutoFallback() { return autoFallback; }
+    public HttpClient getHttpClient() { return httpClient; }
 }

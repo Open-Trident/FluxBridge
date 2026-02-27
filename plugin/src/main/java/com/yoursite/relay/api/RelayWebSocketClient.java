@@ -45,7 +45,7 @@ public class RelayWebSocketClient extends WebSocketClient {
 
         if (message.contains("\"type\":\"execute\"")) {
             // Simplified JSON parsing
-            Pattern pattern = Pattern.compile("\"commandId\":.*?([0-9a-fA-F-]+).*?\"playerName\":(?:null|\"(.*?)\|null).*?\"command\":\"(.*?)\".*?\"requireOnline\":(true|false)");
+            Pattern pattern = Pattern.compile("\"commandId\":.*?([0-9a-fA-F-]+).*?\"playerName\":(?:null|\"(.*?)\").*?\"command\":\"(.*?)\".*?\"requireOnline\":(true|false)");
             Matcher matcher = pattern.matcher(message);
 
             if (matcher.find()) {

@@ -1,0 +1,23 @@
+# FluxBridge Configuration
+
+# Your unique server ID (must match backend 'server_id')
+server-id: "survival_1"
+
+# The secret API key (must match backend 'api_key')
+api-key: "YOUR_SECRET_KEY"
+
+# Backend connection settings
+api-url: "http://localhost:3000/api"
+ws-url: "ws://localhost:3000/ws"
+
+# Execution mode: 'websocket' (real-time push) or 'polling' (HTTP requests every X seconds)
+mode: "websocket"
+
+# HTTP Polling interval (in seconds). Used if mode is 'polling' OR if 'auto-fallback' activates.
+poll-interval: 5
+
+# If the WebSocket connection dies, should the plugin automatically fall back to polling?
+auto-fallback: true
+
+# Name of the file where offline queued commands will be mapped
+queue-save-file: "queue.yml"
