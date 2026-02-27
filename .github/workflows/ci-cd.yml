@@ -1,0 +1,106 @@
+name: FluxBridge CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  verify-backend:
+    name: Verify Backend (Node.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+      - name: Install dependencies
+        run: npm ci
+      - name: Check Syntax (Dry Start)
+        run: node --check src/index.js
+
+  verify-frontend:
+    name: Verify Frontend (React)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build Frontend
+        run: npm run build
+
+  verify-plugin:
+    name: Verify Plugin (Java)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./plugin
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      - name: Build with Maven
+        run: mvn clean package --file pom.xml
+
+  release:
+    name: Auto-Release Plugin
+    needs: [verify-backend, verify-frontend, verify-plugin]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./plugin
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      - name: Build Plugin JAR
+        run: mvn clean package --file pom.xml
+      
+      - name: Extract Release Notes
+        id: extract_notes
+        run: |
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "## FluxBridge Auto Release ${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "- Includes verified backend & frontend commits." >> $GITHUB_OUTPUT
+          echo "- Tested via CI Pipeline." >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: FluxBridge ${{ github.ref_name }}
+          body: ${{ steps.extract_notes.outputs.notes }}
+          files: ./plugin/target/FluxBridge-1.0-SNAPSHOT.jar
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
