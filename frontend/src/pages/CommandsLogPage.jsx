@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Terminal, AlertCircle, CheckCircle } from 'lucide-react';
+import { Activity, Terminal, AlertCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function CommandsLogPage() {
     const [commands, setCommands] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [expandedRows, setExpandedRows] = useState(new Set());
 
     useEffect(() => {
-        fetch('http://localhost:3000/admin/commands')
+        fetch('http://127.0.0.1:3000/admin/commands')
             .then(res => res.json())
             .then(data => {
                 setCommands(data);
@@ -40,6 +41,16 @@ export default function CommandsLogPage() {
         }
     };
 
+    const toggleRow = (id) => {
+        const newExpanded = new Set(expandedRows);
+        if (newExpanded.has(id)) {
+            newExpanded.delete(id);
+        } else {
+            newExpanded.add(id);
+        }
+        setExpandedRows(newExpanded);
+    };
+
     return (
         <div className="max-w-6xl mx-auto">
             <div className="mb-8">
@@ -67,38 +78,81 @@ export default function CommandsLogPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-700">
-                                {commands.map((cmd) => (
-                                    <tr key={cmd.id || cmd._id} className="hover:bg-slate-700/30 transition-colors">
-                                        <td className="p-4 font-mono text-xs text-slate-500">#{cmd.id || String(cmd._id).slice(-4)}</td>
-                                        <td className="p-4 font-medium text-slate-200">{cmd.server_id}</td>
-                                        <td className="p-4">
-                                            {cmd.player_name ? (
-                                                <span className="bg-slate-900 px-2 py-1 rounded text-sm text-blue-300 border border-slate-700">
-                                                    {cmd.player_name}
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-500 text-sm italic">Console</span>
+                                {commands.map((cmd) => {
+                                    const cId = cmd.id || cmd._id;
+                                    const isExpanded = expandedRows.has(cId);
+
+                                    return (
+                                        <React.Fragment key={cId}>
+                                            <tr
+                                                onClick={() => toggleRow(cId)}
+                                                className="hover:bg-slate-700/30 transition-colors cursor-pointer group"
+                                            >
+                                                <td className="p-4 font-mono text-xs text-slate-500 flex items-center gap-2">
+                                                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                                    #{cId || String(cId).slice(-4)}
+                                                </td>
+                                                <td className="p-4 font-medium text-slate-200">{cmd.server_id}</td>
+                                                <td className="p-4">
+                                                    {cmd.player_name ? (
+                                                        <span className="bg-slate-900 px-2 py-1 rounded text-sm text-blue-300 border border-slate-700">
+                                                            {cmd.player_name}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-500 text-sm italic">Console</span>
+                                                    )}
+                                                </td>
+                                                <td className="p-4">
+                                                    <code className="bg-black/30 text-emerald-300 px-2 py-1 rounded text-sm">
+                                                        /{cmd.command}
+                                                    </code>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider ${getStatusColor(cmd.status)}`}>
+                                                        {getStatusIcon(cmd.status)}
+                                                        {cmd.status}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 max-w-xs truncate text-sm text-slate-400 group-hover:text-slate-300 transition-colors" title={cmd.response_message || '-'}>
+                                                    {cmd.response_message || (cmd.require_online && cmd.status === 'PENDING' ? 'Waiting for player...' : '-')}
+                                                </td>
+                                                <td className="p-4 text-right text-sm text-slate-500 whitespace-nowrap">
+                                                    {new Date(cmd.created_at).toLocaleString()}
+                                                </td>
+                                            </tr>
+                                            {isExpanded && (
+                                                <tr className="bg-slate-900/30 border-b-0">
+                                                    <td colSpan="7" className="p-0">
+                                                        <div className="p-6 border-l-4 border-blue-500 bg-slate-800/50 flex flex-col gap-4 shadow-inner">
+                                                            <div>
+                                                                <h4 className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Raw Request Payload</h4>
+                                                                <pre className="bg-black/50 p-3 rounded-lg text-emerald-400 font-mono text-xs overflow-x-auto border border-slate-700/50">
+                                                                    {JSON.stringify({
+                                                                        command_id: cId,
+                                                                        server_id: cmd.server_id,
+                                                                        raw_command: cmd.command,
+                                                                        target: cmd.player_name || 'CONSOLE',
+                                                                        require_online: cmd.require_online,
+                                                                        timestamp: cmd.created_at
+                                                                    }, null, 2)}
+                                                                </pre>
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Debug Response / Trace</h4>
+                                                                <pre className={`p-3 rounded-lg font-mono text-xs overflow-x-auto border ${cmd.status === 'FAILED' ? 'bg-red-950/20 border-red-900/50 text-red-400' :
+                                                                        cmd.status === 'SUCCESS' ? 'bg-emerald-950/20 border-emerald-900/50 text-emerald-400' :
+                                                                            'bg-slate-900/50 border-slate-700/50 text-slate-300'
+                                                                    }`}>
+                                                                    {cmd.response_message || 'Awaiting response from Minecraft Client...'}
+                                                                </pre>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
                                             )}
-                                        </td>
-                                        <td className="p-4">
-                                            <code className="bg-black/30 text-emerald-300 px-2 py-1 rounded text-sm">
-                                                /{cmd.command}
-                                            </code>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider ${getStatusColor(cmd.status)}`}>
-                                                {getStatusIcon(cmd.status)}
-                                                {cmd.status}
-                                            </div>
-                                        </td>
-                                        <td className="p-4 max-w-xs truncate text-sm text-slate-400" title={cmd.response_message || '-'}>
-                                            {cmd.response_message || (cmd.require_online && cmd.status === 'PENDING' ? 'Waiting for player...' : '-')}
-                                        </td>
-                                        <td className="p-4 text-right text-sm text-slate-500 whitespace-nowrap">
-                                            {new Date(cmd.created_at).toLocaleString()}
-                                        </td>
-                                    </tr>
-                                ))}
+                                        </React.Fragment>
+                                    );
+                                })}
                                 {commands.length === 0 && (
                                     <tr>
                                         <td colSpan="7" className="p-12 text-center text-slate-500 border-t border-slate-700">

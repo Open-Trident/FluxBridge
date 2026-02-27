@@ -1,6 +1,8 @@
 A:\Dev\Projects\plugins\pulserelay\FluxBridge\plugin\src\main\java\com\yoursite\relay\api\HttpClient.java
 A:\Dev\Projects\plugins\pulserelay\FluxBridge\plugin\src\main\java\com\yoursite\relay\api\RelayWebSocketClient.java
+A:\Dev\Projects\plugins\pulserelay\FluxBridge\plugin\src\main\java\com\yoursite\relay\command\FluxBridgeCommand.java
 A:\Dev\Projects\plugins\pulserelay\FluxBridge\plugin\src\main\java\com\yoursite\relay\listener\PlayerJoinListener.java
 A:\Dev\Projects\plugins\pulserelay\FluxBridge\plugin\src\main\java\com\yoursite\relay\model\RelayCommand.java
 A:\Dev\Projects\plugins\pulserelay\FluxBridge\plugin\src\main\java\com\yoursite\relay\queue\QueueManager.java
 A:\Dev\Projects\plugins\pulserelay\FluxBridge\plugin\src\main\java\com\yoursite\relay\RelayPlugin.java
+A:\Dev\Projects\plugins\pulserelay\FluxBridge\plugin\src\main\java\com\yoursite\relay\updater\UpdateChecker.java

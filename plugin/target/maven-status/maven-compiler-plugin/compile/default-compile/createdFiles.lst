@@ -1,5 +1,7 @@
 com\yoursite\relay\api\RelayWebSocketClient.class
+com\yoursite\relay\command\FluxBridgeCommand.class
 com\yoursite\relay\listener\PlayerJoinListener.class
+com\yoursite\relay\updater\UpdateChecker.class
 com\yoursite\relay\model\RelayCommand.class
 com\yoursite\relay\api\HttpClient.class
 com\yoursite\relay\queue\QueueManager.class

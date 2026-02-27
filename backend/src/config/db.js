@@ -20,15 +20,23 @@ export const initDB = async () => {
         }
     } else {
         try {
-            const knexInstance = knex({
-                client: process.env.SQL_CLIENT || 'mysql2',
-                connection: {
+            let connectionConfig;
+            if (process.env.SQL_CLIENT === 'sqlite3') {
+                connectionConfig = { filename: './data.sqlite' };
+            } else {
+                connectionConfig = {
                     host: process.env.SQL_HOST || '127.0.0.1',
                     port: process.env.SQL_PORT || 3306,
                     user: process.env.SQL_USER || 'root',
                     password: process.env.SQL_PASSWORD || '',
                     database: process.env.SQL_DATABASE || 'fluxbridge'
-                },
+                };
+            }
+
+            const knexInstance = knex({
+                client: process.env.SQL_CLIENT || 'mysql2',
+                connection: connectionConfig,
+                useNullAsDefault: process.env.SQL_CLIENT === 'sqlite3' ? true : undefined,
                 pool: { min: 2, max: 10 }
             });
 

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Server, Activity, Clock, ShieldCheck } from 'lucide-react';
+import { Server, Activity, Clock, ShieldCheck, Copy, CheckCircle2, Trash2 } from 'lucide-react';
 
 export default function ServersPage() {
     const [servers, setServers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [copiedKey, setCopiedKey] = useState(null);
 
     useEffect(() => {
-        fetch('http://localhost:3000/admin/servers')
+        fetch('http://127.0.0.1:3000/admin/servers')
             .then(res => res.json())
             .then(data => {
                 setServers(data);
@@ -18,13 +19,35 @@ export default function ServersPage() {
             });
     }, []);
 
+    const copyToClipboard = (key) => {
+        navigator.clipboard.writeText(key);
+        setCopiedKey(key);
+        setTimeout(() => setCopiedKey(null), 2000);
+    };
+
     const createTestServer = async () => {
-        await fetch('http://localhost:3000/admin/servers', {
+        await fetch('http://127.0.0.1:3000/admin/servers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ server_id: 'survival_1', name: 'Survival Realm' })
         });
         window.location.reload();
+    };
+
+    const deleteServer = async (serverId) => {
+        if (!window.confirm(`Are you sure you want to delete server "${serverId}"? This will permanently wipe all logs and cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            await fetch(`http://127.0.0.1:3000/admin/servers/${serverId}`, {
+                method: 'DELETE'
+            });
+            setServers(s => s.filter(x => x.server_id !== serverId));
+        } catch (err) {
+            console.error('Failed to delete server:', err);
+            alert('Encountered an error while trying to delete server.');
+        }
     };
 
     return (
@@ -59,9 +82,18 @@ export default function ServersPage() {
                                         <p className="text-sm text-slate-400">{srv.name || 'Unnamed'}</p>
                                     </div>
                                 </div>
-                                <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${srv.status === 'ONLINE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-                                    {srv.status || 'OFFLINE'}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${srv.status === 'ONLINE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                                        {srv.status || 'OFFLINE'}
+                                    </span>
+                                    <button
+                                        onClick={() => deleteServer(srv.server_id)}
+                                        className="p-1.5 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-all group-hover:opacity-100 opacity-0 transform translate-x-2 group-hover:translate-x-0"
+                                        title="Delete Server"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-3 mt-6">
@@ -69,9 +101,18 @@ export default function ServersPage() {
                                     <Clock size={16} className="text-slate-500" />
                                     <span>Last Heartbeat: {srv.last_heartbeat ? new Date(srv.last_heartbeat).toLocaleString() : 'Never'}</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-slate-300 bg-slate-900/50 p-2 rounded border border-slate-700">
-                                    <ShieldCheck size={16} className="text-slate-500" />
-                                    <span className="font-mono text-xs truncate" title={srv.api_key}>Key: {srv.api_key}</span>
+                                <div className="flex items-center gap-2 text-sm text-slate-300 bg-slate-900/50 p-2 rounded border border-slate-700 mt-2">
+                                    <ShieldCheck size={16} className="text-slate-500 shrink-0" />
+                                    <span className="font-mono text-xs opacity-50 blur-[2px] hover:blur-none hover:opacity-100 transition-all cursor-crosshair flex-1 pr-2 truncate">
+                                        {srv.api_key}
+                                    </span>
+                                    <button
+                                        onClick={() => copyToClipboard(srv.api_key)}
+                                        className="shrink-0 text-slate-400 hover:text-white transition-colors"
+                                        title="Copy API Key"
+                                    >
+                                        {copiedKey === srv.api_key ? <CheckCircle2 size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                                    </button>
                                 </div>
                             </div>
                         </div>

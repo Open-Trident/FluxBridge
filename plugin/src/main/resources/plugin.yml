@@ -2,5 +2,22 @@ name: FluxBridge
 version: 1.0
 main: com.yoursite.relay.RelayPlugin
 api-version: 1.13
-description: Minecraft Server Relay Plugin with WebSockets and Polling
-authors: [YourName]
+author: eksses
+description: A dual-mode relay plugin connecting Minecraft servers to a central REST API/WebSocket.
+
+commands:
+  fluxbridge:
+    description: Main command for FluxBridge
+    usage: /fluxbridge <info|reload|test>
+    aliases: [fb]
+
+permissions:
+  fluxbridge.admin.reload:
+    description: Allows reloading the config and network clients
+    default: op
+  fluxbridge.admin.test:
+    description: Allows forcing a heartbeat/connection test
+    default: op
+  fluxbridge.player.info:
+    description: Allows checking the plugin status
+    default: true

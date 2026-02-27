@@ -66,6 +66,40 @@ router.get('/commands', async (req, res) => {
     }
 });
 
+// Delete a server
+router.delete('/servers/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { getDB, getDBType } = await import('../config/db.js');
+
+        if (getDBType() === 'mongo') {
+            const mongoose = (await import('mongoose')).default;
+            const MongoServer = mongoose.model('Server');
+            await MongoServer.deleteOne({ server_id: id });
+        } else {
+            const knex = getDB();
+            await knex('servers').where({ server_id: id }).del();
+        }
+
+        if (getDBType() === 'mongo') {
+            const mongoose = (await import('mongoose')).default;
+            const MongoCommand = mongoose.model('Command');
+            await MongoCommand.deleteMany({ server_id: id });
+        } else {
+            const knex = getDB();
+            await knex('commands').where({ server_id: id }).del();
+        }
+
+        // Connected Servers is not directly exposed to locals in index.js, but we'll try to disconnect it if exposed
+        // Or naturally it will disconnect when the server goes offline
+
+        res.json({ success: true, message: 'Server deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting server:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Create a new command to explicitly push to a server
 router.post('/commands', async (req, res) => {
     try {

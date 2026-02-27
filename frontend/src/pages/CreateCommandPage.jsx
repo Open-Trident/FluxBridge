@@ -13,7 +13,7 @@ export default function CreateCommandPage() {
     const [status, setStatus] = useState(null);
 
     useEffect(() => {
-        fetch('http://localhost:3000/admin/servers')
+        fetch('http://127.0.0.1:3000/admin/servers')
             .then(res => res.json())
             .then(data => {
                 setServers(data);
@@ -29,7 +29,7 @@ export default function CreateCommandPage() {
         setStatus({ type: 'loading', message: 'Dispatching command...' });
 
         try {
-            const res = await fetch('http://localhost:3000/admin/commands', {
+            const res = await fetch('http://127.0.0.1:3000/admin/commands', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -62,8 +62,8 @@ export default function CreateCommandPage() {
 
             {status && (
                 <div className={`p-4 mb-6 rounded-lg border flex items-center gap-3 ${status.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
-                        status.type === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-                            'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                    status.type === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                        'bg-blue-500/10 border-blue-500/30 text-blue-400'
                     }`}>
                     {status.type === 'error' && <AlertCircle size={20} />}
                     <span className="font-medium">{status.message}</span>

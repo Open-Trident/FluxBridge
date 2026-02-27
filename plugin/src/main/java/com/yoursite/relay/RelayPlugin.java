@@ -4,7 +4,9 @@ import com.yoursite.relay.api.HttpClient;
 import com.yoursite.relay.api.RelayWebSocketClient;
 import com.yoursite.relay.listener.PlayerJoinListener;
 import com.yoursite.relay.model.RelayCommand;
+import com.yoursite.relay.command.FluxBridgeCommand;
 import com.yoursite.relay.queue.QueueManager;
+import com.yoursite.relay.updater.UpdateChecker;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -35,6 +37,9 @@ public class RelayPlugin extends JavaPlugin {
         getLogger().info("Server ID: " + serverId);
         getLogger().info("Mode: " + mode);
         
+        // Run GitHub version check
+        new UpdateChecker(this, "R-Samir-Bhuiyan-A/FluxBridge").checkForUpdates();
+        
         File queueFile = new File(getDataFolder(), getConfig().getString("queue-save-file", "queue.yml"));
         if (!queueFile.exists()) {
             try { queueFile.createNewFile(); } catch (Exception e) { getLogger().severe("Could not create queue.yml!"); }
@@ -42,6 +47,8 @@ public class RelayPlugin extends JavaPlugin {
         
         queueManager = new QueueManager(this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, queueManager), this);
+        
+        getCommand("fluxbridge").setExecutor(new FluxBridgeCommand(this));
         
         httpClient = new HttpClient(this);
         
@@ -65,6 +72,21 @@ public class RelayPlugin extends JavaPlugin {
         mode = getConfig().getString("mode", "websocket").toLowerCase();
         pollInterval = getConfig().getInt("poll-interval", 5);
         autoFallback = getConfig().getBoolean("auto-fallback", true);
+    }
+    
+    public void reloadPlugin() {
+        if (webSocketClient != null && webSocketClient.isOpen()) {
+            webSocketClient.close();
+        }
+        if (httpClient != null) {
+            httpClient.stopPolling();
+        }
+        
+        reloadConfig();
+        loadConfiguration();
+        
+        getLogger().info("FluxBridge config reloaded. Switching to mode: " + mode);
+        startClients();
     }
     
     private void startClients() {
