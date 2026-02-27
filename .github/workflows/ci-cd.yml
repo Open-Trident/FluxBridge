@@ -101,7 +101,7 @@ jobs:
         id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          release-type: node
+          release-type: simple
           
   upload-release-assets:
     name: Upload Plugin & Docker Images
