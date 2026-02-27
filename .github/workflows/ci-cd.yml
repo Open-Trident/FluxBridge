@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FluxBridge-DevBuild
-          path: ./plugin/target/FluxBridge-1.0-SNAPSHOT.jar
+          path: ./plugin/target/FluxBridge-1.1-SNAPSHOT.jar
           if-no-files-found: error
 
   release:
@@ -107,11 +107,11 @@ jobs:
         run: |
           # Generate a short hash payload for unique releasing without tags
           SHORT_SHA=$(git rev-parse --short HEAD)
-          RELEASE_TAG="v1.0.0-$SHORT_SHA"
+          RELEASE_TAG="v1.1.0-$SHORT_SHA"
           echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
           
           # Rename the artifact to match the release tag dynamically
-          mv ./artifact-bin/FluxBridge-1.0-SNAPSHOT.jar "./artifact-bin/FluxBridge-$RELEASE_TAG.jar"
+          mv ./artifact-bin/FluxBridge-1.1-SNAPSHOT.jar "./artifact-bin/FluxBridge-$RELEASE_TAG.jar"
           echo "jar_path=./artifact-bin/FluxBridge-$RELEASE_TAG.jar" >> $GITHUB_OUTPUT
           
           echo "notes<<EOF" >> $GITHUB_OUTPUT

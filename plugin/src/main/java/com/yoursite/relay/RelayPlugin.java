@@ -37,8 +37,8 @@ public class RelayPlugin extends JavaPlugin {
         getLogger().info("Server ID: " + serverId);
         getLogger().info("Mode: " + mode);
         
-        // Run GitHub version check
-        new UpdateChecker(this, "R-Samir-Bhuiyan-A/FluxBridge").checkForUpdates();
+        // Run GitHub version check asynchronously and schedule it
+        new UpdateChecker(this, "R-Samir-Bhuiyan-A/FluxBridge").start();
         
         File queueFile = new File(getDataFolder(), getConfig().getString("queue-save-file", "queue.yml"));
         if (!queueFile.exists()) {

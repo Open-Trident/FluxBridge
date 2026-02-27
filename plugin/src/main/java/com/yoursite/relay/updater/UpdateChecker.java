@@ -18,9 +18,17 @@ public class UpdateChecker {
         this.repoName = repoName;
     }
 
-    public void checkForUpdates() {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
+    public void start() {
+        // Run once on boot
+        checkForUpdates();
+
+        // Run every 12 hours (20 ticks/sec * 60 sec/min * 60 min/hr * 12 hr)
+        long twelveHoursInTicks = 20L * 60L * 60L * 12L;
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::checkForUpdates, twelveHoursInTicks, twelveHoursInTicks);
+    }
+
+    private void checkForUpdates() {
+        try {
                 URL githubUrl = new URL("https://api.github.com/repos/" + repoName + "/releases/latest");
                 HttpURLConnection connection = (HttpURLConnection) githubUrl.openConnection();
                 connection.setRequestMethod("GET");
@@ -77,6 +85,5 @@ public class UpdateChecker {
             } catch (Exception e) {
                 plugin.getLogger().warning("Unable to check for updates: " + e.getMessage());
             }
-        });
     }
 }
