@@ -67,7 +67,9 @@ public class UpdateChecker {
                                 currentVersion = currentVersion.substring(1);
                             }
 
-                            if (!currentVersion.equalsIgnoreCase(latestVersion) && !currentVersion.contains("SNAPSHOT")) {
+                            // If they don't explicitly match, assume there is a newer update.
+                            // This also alerts users on X.Y-SNAPSHOT if the latest release is X.Y
+                            if (!currentVersion.equalsIgnoreCase(latestVersion)) {
                                 plugin.getLogger().warning("========================================");
                                 plugin.getLogger().warning("A new version of FluxBridge is available!");
                                 plugin.getLogger().warning("Current version: " + currentVersion);

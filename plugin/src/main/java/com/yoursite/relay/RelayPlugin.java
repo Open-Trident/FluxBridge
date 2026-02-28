@@ -23,6 +23,7 @@ public class RelayPlugin extends JavaPlugin {
     private String mode;
     private int pollInterval;
     private boolean autoFallback;
+    private boolean debug;
 
     private QueueManager queueManager;
     private HttpClient httpClient;
@@ -72,6 +73,7 @@ public class RelayPlugin extends JavaPlugin {
         mode = getConfig().getString("mode", "websocket").toLowerCase();
         pollInterval = getConfig().getInt("poll-interval", 5);
         autoFallback = getConfig().getBoolean("auto-fallback", true);
+        debug = getConfig().getBoolean("debug", false);
     }
     
     public void reloadPlugin() {
@@ -128,7 +130,9 @@ public class RelayPlugin extends JavaPlugin {
         if (cmd.isRequireOnline() && cmd.getPlayerName() != null && !cmd.getPlayerName().isEmpty()) {
             Player p = Bukkit.getPlayer(cmd.getPlayerName());
             if (p == null || !p.isOnline()) {
-                getLogger().info("Player " + cmd.getPlayerName() + " is offline. Queuing command...");
+                if (debug) {
+                    getLogger().info("[DEBUG] Player " + cmd.getPlayerName() + " is offline. Queuing command...");
+                }
                 queueManager.queueCommand(cmd);
                 
                 // We'll mark as QUEUED inside the backend
@@ -137,7 +141,9 @@ public class RelayPlugin extends JavaPlugin {
             }
         }
 
-        getLogger().info("Executing command: /" + cmd.getCommand());
+        if (debug) {
+            getLogger().info("[DEBUG] Executing command: /" + cmd.getCommand());
+        }
         boolean success = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.getCommand());
         
         sendResult(cmd.getCommandId(), "SUCCESS", success ? "Executed command successfully" : "Executed command, dispatched locally");
@@ -152,4 +158,5 @@ public class RelayPlugin extends JavaPlugin {
     public int getPollInterval() { return pollInterval; }
     public boolean isAutoFallback() { return autoFallback; }
     public HttpClient getHttpClient() { return httpClient; }
+    public boolean isDebug() { return debug; }
 }

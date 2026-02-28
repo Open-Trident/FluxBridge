@@ -8,12 +8,14 @@ import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RelayWebSocketClient extends WebSocketClient {
 
     private final RelayPlugin plugin;
+    private final AtomicInteger reconnectAttempts = new AtomicInteger(0);
 
     public RelayWebSocketClient(RelayPlugin plugin, String url) throws URISyntaxException {
         super(new URI(url));
@@ -22,6 +24,7 @@ public class RelayWebSocketClient extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake handshakedata) {
+        reconnectAttempts.set(0); // Reset attempts on successful connection
         plugin.getLogger().info("WebSocket connected. Sending Auth...");
         
         // Send Auth payload
@@ -40,6 +43,9 @@ public class RelayWebSocketClient extends WebSocketClient {
         
         if (message.contains("\"type\":\"auth_success\"")) {
             plugin.getLogger().info("Successfully authenticated with FluxBridge WebSocket.");
+            if (plugin.isDebug()) {
+                plugin.getLogger().info("[DEBUG] Received auth_success");
+            }
             return;
         }
 
@@ -74,12 +80,19 @@ public class RelayWebSocketClient extends WebSocketClient {
             plugin.startPolling();
         }
 
-        // Try reconnect logic (simple backoff not strictly required for MVP, but we can try reconnect sync task)
+        // Exponential backoff logic: 5s, 10s, 20s, 40s... capped at 5 minutes (300s)
+        int attempt = reconnectAttempts.incrementAndGet();
+        long delaySeconds = Math.min((long) (5 * Math.pow(2, attempt - 1)), 300);
+
+        if (plugin.isDebug()) {
+            plugin.getLogger().info("[DEBUG] Scheduling WebSocket reconnect attempt " + attempt + " in " + delaySeconds + " seconds.");
+        }
+
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (plugin.getMode().equals("websocket") && !this.isOpen()) {
                 plugin.startWebSocket();
             }
-        }, 200L); // 10 seconds retry
+        }, delaySeconds * 20L);
     }
 
     @Override

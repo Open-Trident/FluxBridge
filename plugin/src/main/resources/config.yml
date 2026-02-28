@@ -21,3 +21,6 @@ auto-fallback: true
 
 # Name of the file where offline queued commands will be mapped
 queue-save-file: "queue.yml"
+
+# Enable detailed debug logging (useful for troubleshooting)
+debug: false
