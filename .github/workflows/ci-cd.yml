@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FluxBridge-DevBuild
-          path: ./plugin/target/FluxBridge-1.1-SNAPSHOT.jar
+          path: ./plugin/target/FluxBridge-*.jar
           if-no-files-found: error
 
   release:
@@ -111,7 +111,8 @@ jobs:
           echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
           
           # Rename the artifact to match the release tag dynamically
-          mv ./artifact-bin/FluxBridge-1.1-SNAPSHOT.jar "./artifact-bin/FluxBridge-$RELEASE_TAG.jar"
+          JAR_FILE=$(find ./artifact-bin -name "FluxBridge-*.jar" | head -n 1)
+          mv "$JAR_FILE" "./artifact-bin/FluxBridge-$RELEASE_TAG.jar"
           echo "jar_path=./artifact-bin/FluxBridge-$RELEASE_TAG.jar" >> $GITHUB_OUTPUT
           
           echo "notes<<EOF" >> $GITHUB_OUTPUT
