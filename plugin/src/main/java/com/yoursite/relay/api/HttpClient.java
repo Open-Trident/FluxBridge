@@ -60,10 +60,14 @@ public class HttpClient {
                     String jsonResponse = response.toString();
                     parseAndExecute(jsonResponse);
                 } else {
-                    plugin.getLogger().warning("Failed to fetch commands! Code: " + responseCode);
+                    if (plugin.isDebug()) {
+                        plugin.getLogger().warning("Failed to fetch commands! Code: " + responseCode);
+                    }
                 }
             } catch (Exception e) {
-                plugin.getLogger().warning("Error fetching commands via HTTP Polling: " + e.getMessage());
+                if (plugin.isDebug()) {
+                    plugin.getLogger().warning("Error fetching commands via HTTP Polling: " + e.getMessage());
+                }
             }
         });
     }
@@ -116,7 +120,9 @@ public class HttpClient {
 
                 conn.getResponseCode();
             } catch (Exception e) {
-                plugin.getLogger().warning("Error sending result: " + e.getMessage());
+                if (plugin.isDebug()) {
+                    plugin.getLogger().warning("Error sending result: " + e.getMessage());
+                }
             }
         });
     }

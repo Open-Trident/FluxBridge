@@ -62,6 +62,7 @@ public class RelayPlugin extends JavaPlugin {
             webSocketClient.close();
         }
         httpClient.stopPolling();
+        Bukkit.getScheduler().cancelTasks(this);
         getLogger().info("FluxBridge has been disabled");
     }
 

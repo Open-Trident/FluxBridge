@@ -72,11 +72,15 @@ public class RelayWebSocketClient extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        plugin.getLogger().warning("WebSocket disconnected: " + reason);
+        if (plugin.isDebug()) {
+            plugin.getLogger().warning("WebSocket disconnected: " + reason);
+        }
         
         // Trigger auto-fallback to plugin main loop if enabled
         if (plugin.isAutoFallback()) {
-            plugin.getLogger().warning("Auto-fallback enabled. Switching to Polling mode...");
+            if (plugin.isDebug()) {
+                plugin.getLogger().warning("Auto-fallback enabled. Switching to Polling mode...");
+            }
             plugin.startPolling();
         }
 
@@ -97,7 +101,9 @@ public class RelayWebSocketClient extends WebSocketClient {
 
     @Override
     public void onError(Exception ex) {
-        plugin.getLogger().severe("WebSocket Error: " + ex.getMessage());
+        if (plugin.isDebug()) {
+            plugin.getLogger().severe("WebSocket Error: " + ex.getMessage());
+        }
     }
 
     public void sendResult(int commandId, String status, String message) {
